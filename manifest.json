@@ -1,0 +1,31 @@
+{
+  "name": "81칸 동네탈출 : 엄마를 피해 학원에서 도망가자",
+  "short_name": "동네탈출",
+  "description": "엄마를 피해 학원에서 도망가는 81칸 보드게임",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#dbeefb",
+  "theme_color": "#f6f1e4",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
