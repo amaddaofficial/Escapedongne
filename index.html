@@ -481,7 +481,7 @@ function airportArt(){
    <text x="771" y="194" class="hw" font-size="25" fill="#3b6f86" text-anchor="middle">공</text>
    <text x="771" y="228" class="hw" font-size="25" fill="#3b6f86" text-anchor="middle">항</text>
   </g>`;
-  const steps=[{y:228,t:'체크인',c:'#ffffff'},{y:154,t:'게이트',c:'#ffffff'},{y:80,t:'비행기표!',c:'#7fc47f'}];
+  const steps=[{y:228,t:'체크인',c:'#ffffff'},{y:154,t:'게이트',c:'#ffffff'},{y:80,t:'비행기',c:'#7fc47f'}];
   steps.forEach((st,k)=>{
     s+=`<path d="${chamfer(802,st.y,96,64,9)}" fill="${st.c}" stroke="${P}" stroke-width="3"/>
         <text x="850" y="${st.y+40}" class="hw" font-size="${k===2?23:22}" fill="${k===2?'#ffffff':'#4a4238'}" text-anchor="middle">${st.t}</text>`;
