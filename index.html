@@ -593,8 +593,10 @@ function buildStage(){
    <g id="gTokens"></g>
    <g id="gFx"></g>
   </svg>`;
-  $('#endBtnG').addEventListener('click',()=>{ if(playing){SFX.popup();buzz(10);$('#scQuit').classList.add('on');} });
 }
+stage.addEventListener('click',e=>{
+  if(e.target.closest('#endBtnG')&&playing){SFX.popup();buzz(10);$('#scQuit').classList.add('on');}
+});
 buildStage(); shuffleLights();
 
 /* ── 카메라 ─────────────────────────────── */
@@ -709,6 +711,13 @@ async function rollDiceAnim(mode='normal',power=0){
 
 /* ── 게임 상태 ──────────────────────────── */
 let players=[],cur=0,round=1,mom=null,momActive=false,canRoll=false,busy=false,winner=null,playing=false,lock=false;
+let gameGen=0,startingGame=false,robotRollT=null;
+function isLive(gen){return playing&&gen===gameGen;}
+function abortGame(){
+  gameGen++; playing=false; canRoll=false; busy=false; lock=false;
+  clearTimeout(robotRollT); robotRollT=null;
+  clearTimeout(toastT); $('#toast')?.classList.remove('on');
+}
 const CHAR_SCALE=0.63;                // 아이·로봇 기본 크기 (기존 0.7에서 10% 추가 축소)
 const MOM_SCALE=CHAR_SCALE*1.43;      // 아이 대비 130%였던 걸 다시 10% 키움 (1.3*1.1)
 let momScale=MOM_SCALE, momRage=false;
@@ -738,22 +747,23 @@ function auraSVG(){
 function tokenXY(p){const c=ctr(p.pos);const g=players.filter(q=>q.pos===p.pos);
   const i=g.indexOf(p),n=g.length;
   return{x:c.x+(n>1?(i-(n-1)/2)*20:0),y:c.y+28+(n>2?(i%2?6:-6):0)};}
-function drawToken(p,x,y,s=1){p.el.setAttribute('transform',`translate(${x},${y}) scale(${s*CHAR_SCALE})`);}
-function refresh(p){p.el.innerHTML=tokenMarkup(p);}
+function drawToken(p,x,y,s=1){if(!p?.el?.isConnected)return; p.el.setAttribute('transform',`translate(${x},${y}) scale(${s*CHAR_SCALE})`);}
+function refresh(p){if(!p?.el?.isConnected)return; p.el.innerHTML=tokenMarkup(p);}
 function setMood(p,m){if(p.mood===m)return;p.mood=m;refresh(p);}
+function repositionCell(pos){players.filter(q=>q.pos===pos).forEach(p=>{const t=tokenXY(p);drawToken(p,t.x,t.y);});}
 function placeAll(){players.forEach(p=>{const t=tokenXY(p);drawToken(p,t.x,t.y);});}
 function setTurnLabel(t){const e=document.getElementById('turnLabel');if(e)e.textContent=t;}
 
 async function hopTo(p,to,dur=250){
-  const a=tokenXY(p);p.pos=to;const b=tokenXY(p);SFX.hop();buzz(9);
+  const from=p.pos,a=tokenXY(p);p.pos=to;const b=tokenXY(p);SFX.hop();buzz(9);
   await animate(RM?0:dur,k=>drawToken(p,a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k-Math.sin(Math.PI*k)*42,1+Math.sin(Math.PI*k)*.07));
-  placeAll();
+  repositionCell(from);repositionCell(to);
 }
 async function slideTo(p,to,dur=700){
-  const a=tokenXY(p);p.pos=to;const b=tokenXY(p);
+  const from=p.pos,a=tokenXY(p);p.pos=to;const b=tokenXY(p);
   await animate(RM?0:dur,k=>{const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
     drawToken(p,a.x+(b.x-a.x)*e,a.y+(b.y-a.y)*e,1+Math.sin(Math.PI*k)*.1);});
-  placeAll();
+  repositionCell(from);repositionCell(to);
 }
 /* 엄마 */
 const momCells=()=>{
@@ -765,6 +775,7 @@ const momCells=()=>{
 };
 function paintMom(){
   const g=$('#gMom');
+  if(!g||!mom)return;
   let s=momCells().map(i=>{const p=cellXY(i);
     return `<path d="${chamfer(p.x+5,p.y+5,CS-10,CS-10,9)}" fill="#e0384f" opacity=".15"/>`;}).join('');
   g.innerHTML=s+`<g id="momTok"></g>`;
@@ -782,12 +793,13 @@ async function momHop(to){
 /* ── 이동 ───────────────────────────────── */
 async function walk(p,n){
   for(let k=0;k<n;k++){
+    if(!playing)return;
     if(p.pos>=LAST)p.dir=-1; else if(p.pos<=TOPL&&p.dir===-1)p.dir=1;
-    setMood(p,k%2?'tired':'nervous');
     await hopTo(p,p.pos+p.dir);
     await wait(RM?0:40);
-    if(p.pos===LAST&&p.ticket) break;  // 티켓 소지 시 공항입구에 닿는 즉시 정지 (남은 눈금은 무시, 딱 맞게 도착할 필요 없음)
+    if(p.pos===LAST&&p.ticket) break;
   }
+  setMood(p,p.pos%2?'tired':'nervous');
 }
 const zoomCell=(i,z=1.95)=>{const c=ctr(i);return setCam(c.x,Math.min(H-160,Math.max(200,c.y)),z,360);};
 
@@ -857,60 +869,75 @@ function triggerRoll(power=0){
     .finally(()=>{lock=false;});
 }
 async function takeTurn(power=0){
+  const gen=gameGen;
   busy=true;
   try{
     const p=players[cur];
+    if(!p?.el?.isConnected)return;
     const n=await rollDiceAnim('normal',power);
-    if(!playing)return;
+    if(!isLive(gen))return;
     await toast(`${p.name} — ${n}칸!`,800);
+    if(!isLive(gen))return;
     await walk(p,n);
+    if(!isLive(gen))return;
     buzz([16,10,34]);
     await zoomCell(p.pos);await wait(180);
+    if(!isLive(gen))return;
     await resolveCell(p);
+    if(!isLive(gen))return;
     await checkCatch(p,n);
+    if(!isLive(gen))return;
     const caught=await checkMom(p);
+    if(!isLive(gen))return;
     if(!caught&&p.pos===LAST){
-      if(p.ticket){await finish(p);return;}
+      if(p.ticket){await finish(p,gen);return;}
       setMood(p,'sad');refresh(p);
       await showNoTicketPopup();
     }
+    if(!isLive(gen))return;
     await fullView(460);
     cur++;
-    if(cur>=players.length){cur=0;await momTurn();}else beginTurn();
+    if(cur>=players.length){cur=0;await momTurn(gen);}else beginTurn();
   } finally {
-    busy=false;
+    if(gen===gameGen)busy=false;
   }
 }
-async function momTurn(){
+async function momTurn(gen=gameGen){
   busy=true;
   try{
-    if(round<3){ round++; beginTurn(); return; }  // 1~2번째 턴엔 엄마 등장 안 함, 3번째 턴부터 등장
+    if(!isLive(gen))return;
+    if(round<3){ round++; beginTurn(); return; }
     setTurnLabel('엄마');
     if(!momActive){
       momActive=true; mom.pos=0; mom.mood='calm'; paintMom();
       audioOn(); SFX.momAppear(); buzz([0,55,70,55,200]);
       await zoomCell(mom.pos,1.85);
+      if(!isLive(gen))return;
       await toast('두둥! 엄마 등장!! 조심해!',1300);
+      if(!isLive(gen))return;
       await wait(150);
     }
     mom.mood=['angry','phone','sweat','calm'][ri(0,3)];paintMom();
     await toast('엄마 차례!',600);
+    if(!isLive(gen))return;
     const step=await rollDiceAnim(momRage?'momRage':'mom');
-    if(!playing)return;
+    if(!isLive(gen))return;
     for(let k=0;k<step;k++){
       if(mom.pos>=LAST)break;
       await momHop(mom.pos+1);
+      if(!isLive(gen))return;
       await wait(RM?0:55);
       if(mom.pos>=LAST)break;
     }
     await zoomCell(mom.pos,1.7);
+    if(!isLive(gen))return;
     for(const p of players) await checkMom(p);
-    if(!playing)return;
+    if(!isLive(gen))return;
     if(mom.pos>=LAST){ await momGameOver(); return; }
     await fullView(460);
     round++;beginTurn();
   } finally {
-    busy=false;
+    if(gen===gameGen)busy=false;
   }
 }
 async function momGameOver(){
@@ -924,43 +951,55 @@ async function momGameOver(){
 }
 function beginTurn(){
   if(winner||!playing)return;
-  shuffleLights();
   const p=players[cur];
+  if(!p?.el?.isConnected)return;
+  shuffleLights();
   setTurnLabel(p.robot?'로봇':`${cur+1}P`);
   setMood(p,'nervous');
-  if(p.auto){setTimeout(()=>{canRoll=true;triggerRoll();},800);}
-  else{canRoll=true;$('#diceWrap').classList.remove('disabled');}
+  clearTimeout(robotRollT);
+  if(p.auto){
+    robotRollT=setTimeout(()=>{
+      if(!playing||winner||busy||lock)return;
+      canRoll=true;triggerRoll();
+    },800);
+  }else{canRoll=true;$('#diceWrap').classList.remove('disabled');}
 }
 
 /* ── 골인 ───────────────────────────────── */
-async function finish(p){
+async function finish(p,gen=gameGen){
+  if(!isLive(gen))return;
   winner=p;canRoll=false;
   setMood(p,'bright');
   await zoomCell(LAST,1.9);
+  if(!isLive(gen))return;
   await toast('비행기표 확인! 공항으로!',1000);
   let a=tokenXY(p);
   for(let k=0;k<3;k++){
+    if(!isLive(gen))return;
     const s=STEP_XY[k];SFX.hop();buzz(12);
     await animate(RM?0:340,t=>drawToken(p,a.x+(s.x-a.x)*t,a.y+(s.y-a.y)*t-Math.sin(Math.PI*t)*50,1));
     drawToken(p,s.x,s.y,1);a={x:s.x,y:s.y};
     await setCam(s.x,Math.max(200,s.y-40),1.7,300);
     await toast(['체크인 완료','게이트 통과','비행기표!'][k],700);
   }
+  if(!isLive(gen))return;
   SFX.ticket();
   await setCam(W/2,250,1.15,600);
   await toast('탑승 완료! 엄마, 안녕~',1000);
   const plane=$('#planeG'),arm=document.getElementById('waveArm');
-  const wv=setInterval(()=>{arm.setAttribute('transform',arm.getAttribute('transform')==='rotate(-32 13 -7)'?'rotate(12 13 -7)':'rotate(-32 13 -7)');},180);
+  const wv=setInterval(()=>{if(arm)arm.setAttribute('transform',arm.getAttribute('transform')==='rotate(-32 13 -7)'?'rotate(12 13 -7)':'rotate(-32 13 -7)');},180);
   SFX.win();buzz([30,60,30,60,30,60,120]);
   drawToken(p,205,208,.62);
   await animate(RM?0:2400,k=>{
+    if(!isLive(gen))return;
     const e=k*k,x=-e*790,y=-e*240;
-    plane.setAttribute('transform',`translate(${175+x},${192+y}) rotate(${-e*14}) scale(${1-e*.45})`);
-    plane.style.opacity=String(1-Math.max(0,(k-.6)/.4));
+    if(plane){plane.setAttribute('transform',`translate(${175+x},${192+y}) rotate(${-e*14}) scale(${1-e*.45})`);plane.style.opacity=String(1-Math.max(0,(k-.6)/.4));}
     drawToken(p,205+x,208+y,.62*(1-e*.45));
-    p.el.style.opacity=String(1-Math.max(0,(k-.6)/.4));
+    if(p.el)p.el.style.opacity=String(1-Math.max(0,(k-.6)/.4));
   });
-  clearInterval(wv);await wait(200);showWin(p);
+  clearInterval(wv);
+  if(!isLive(gen))return;
+  await wait(200);showWin(p);
 }
 
 /* ── 화면 흐름 ──────────────────────────── */
@@ -994,25 +1033,50 @@ function grid(){
   $('#pickedRow').innerHTML=picks.map((id,i)=>`<span class="pchip" style="border-color:${PCOLOR[i]}">${i+1} Player</span>`).join('')
     +(cnt===1&&picks.length===1?`<span class="pchip" style="border-color:${PCOLOR[1]}">로봇친구</span>`:'');
 }
-$('#setupGo').addEventListener('click',()=>{$('#scSetup').classList.remove('on');startGame();});
+$('#setupGo').addEventListener('click',()=>{
+  if($('#setupGo').disabled||startingGame)return;
+  $('#scSetup').classList.remove('on');
+  startGame();
+});
 
 async function startGame(){
-  players=[];cur=0;round=1;winner=null;playing=true;momActive=false;momRage=false;momScale=MOM_SCALE;
-  picks.forEach((id,i)=>players.push({name:`${i+1} Player`,def:CHARS[id],color:PCOLOR[i],num:i+1,
-    pos:0,dir:1,ticket:false,mood:'nervous',auto:false,robot:false}));
-  if(cnt<=1) players.push({name:'로봇친구',def:CHARS[0],color:PCOLOR[1],rvar:ri(0,1),
-    pos:0,dir:1,ticket:false,mood:'nervous',auto:true,robot:true});
-  mom={def:MOMS[ri(0,2)],pos:0,mood:'calm'};
-  const g=$('#gTokens');g.innerHTML='';
-  players.forEach(p=>{const el=document.createElementNS('http://www.w3.org/2000/svg','g');
-    el.innerHTML=tokenMarkup(p);g.appendChild(el);p.el=el;});
-  placeAll();  // 엄마는 3번째 턴부터 등장하므로 아직 그리지 않음
-  $('#dicebar').style.display='flex';
-  setTurnLabel('1P');
-  await setCam(ctr(0).x+130,ctr(0).y-70,2.0,700);
-  await toast('학원 — 여기서 출발!',1300);
-  await wait(300);await fullView(760);
-  shuffleLights();beginTurn();
+  if(startingGame)return;
+  startingGame=true;
+  const gen=++gameGen;
+  try{
+    playing=true; winner=null; cur=0; round=1; momActive=false; momRage=false; momScale=MOM_SCALE;
+    canRoll=false; busy=false; lock=false;
+    players.forEach(p=>{if(p.el)p.el.remove();});
+    players=[];
+    picks.forEach((id,i)=>players.push({name:`${i+1} Player`,def:CHARS[id],color:PCOLOR[i],num:i+1,
+      pos:0,dir:1,ticket:false,mood:'nervous',auto:false,robot:false}));
+    if(cnt<=1) players.push({name:'로봇친구',def:CHARS[0],color:PCOLOR[1],rvar:ri(0,1),
+      pos:0,dir:1,ticket:false,mood:'nervous',auto:true,robot:true});
+    mom={def:MOMS[ri(0,2)],pos:0,mood:'calm'};
+    if(!$('#gTokens')){buildStage();shuffleLights();}
+    const g=$('#gTokens');
+    if(!g){console.error('보드 생성 실패');return;}
+    g.innerHTML='';
+    players.forEach(p=>{const el=document.createElementNS('http://www.w3.org/2000/svg','g');
+      el.innerHTML=tokenMarkup(p);g.appendChild(el);p.el=el;});
+    placeAll();
+    buildDiceFaces('normal');
+    $('#dicebar').style.display='flex';
+    setTurnLabel('1P');
+    if(!isLive(gen))return;
+    await setCam(ctr(0).x+130,ctr(0).y-70,2.0,700);
+    if(!isLive(gen))return;
+    await toast('학원 — 여기서 출발!',1300);
+    if(!isLive(gen))return;
+    await wait(300);await fullView(760);
+    if(!isLive(gen))return;
+    shuffleLights();beginTurn();
+  }catch(err){
+    console.error('게임 시작 오류:',err);
+    if(isLive(gen))abortGame();
+  }finally{
+    startingGame=false;
+  }
 }
 
 /* 종료 / 재도전 */
@@ -1039,6 +1103,7 @@ function showNoTicketPopup(){
   });
 }
 function retryGame(){
+  abortGame();
   players.forEach(p=>{if(p.el)p.el.remove();});
   players=[];
   buildStage();shuffleLights();
@@ -1046,7 +1111,7 @@ function retryGame(){
   startGame();
 }
 function resetAll(){
-  playing=false;canRoll=false;busy=false;winner=null;round=1;cur=0;momActive=false;momRage=false;momScale=MOM_SCALE;
+  abortGame();
   players.forEach(p=>{if(p.el){p.el.style.opacity='1';p.el.remove();}});
   players=[];
   buildStage();shuffleLights();
