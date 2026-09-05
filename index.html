@@ -884,7 +884,7 @@ async function takeTurn(power=0){
 async function momTurn(){
   busy=true;
   try{
-    if(round===1){ round++; beginTurn(); return; }  // 1번째 턴엔 엄마 등장 안 함, 2번째 턴부터 등장
+    if(round<3){ round++; beginTurn(); return; }  // 1~2번째 턴엔 엄마 등장 안 함, 3번째 턴부터 등장
     setTurnLabel('엄마');
     if(!momActive){
       momActive=true; mom.pos=0; mom.mood='calm'; paintMom();
@@ -1006,7 +1006,7 @@ async function startGame(){
   const g=$('#gTokens');g.innerHTML='';
   players.forEach(p=>{const el=document.createElementNS('http://www.w3.org/2000/svg','g');
     el.innerHTML=tokenMarkup(p);g.appendChild(el);p.el=el;});
-  placeAll();  // 엄마는 2번째 턴부터 등장하므로 아직 그리지 않음
+  placeAll();  // 엄마는 3번째 턴부터 등장하므로 아직 그리지 않음
   $('#dicebar').style.display='flex';
   setTurnLabel('1P');
   await setCam(ctr(0).x+130,ctr(0).y-70,2.0,700);
