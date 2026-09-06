@@ -24,7 +24,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet"></noscript>
 <style>
 :root{--paper:#f6f1e4;--ink:#4a4238}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -32,8 +33,8 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#e8e2d2;
   font-family:'Gaegu','Nanum Pen Script','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
   color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #viewport{position:fixed;inset:0;overflow:hidden;background:radial-gradient(circle at 50% 28%,#fdfaf1 0%,#e6dfcd 100%)}
-#stage{position:absolute;left:0;top:0;width:900px;height:1200px;transform-origin:0 0;will-change:transform}
-#stage svg{position:absolute;left:0;top:0;width:900px;height:1200px;display:block}
+#stage{position:absolute;left:0;top:0;width:900px;height:1200px;transform-origin:0 0;will-change:transform;contain:layout paint style}
+#stage svg{position:absolute;left:0;top:0;width:900px;height:1200px;display:block;shape-rendering:optimizeSpeed}
 #endBtnG{cursor:pointer}
 
 /* 주사위 */
@@ -66,7 +67,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#e8e2d2;
 #diceWrap.disabled{opacity:.42;pointer-events:none}
 
 /* 화면 */
-.screen{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(60,54,44,.42);backdrop-filter:blur(2px)}
+.screen{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(60,54,44,.48)}
 .screen.on{display:flex}
 .panel{width:min(430px,94vw);max-height:92vh;overflow:auto;background:#fffdf3;border:3.5px solid var(--ink);border-radius:22px;padding:20px 18px 18px;box-shadow:5px 7px 0 rgba(74,66,56,.3)}
 .panel h2{margin:0 0 6px;font-size:30px;font-weight:700;letter-spacing:-.5px}
@@ -260,12 +261,10 @@ const BODY_PATH=roundedTriangle(P_APEX[0],P_APEX[1],P_BL[0],P_BL[1],P_BR[0],P_BR
 const HEAD_CY=-84, HEAD_R=36;
 const HEAD_PATH=`M${-HEAD_R},${HEAD_CY} a${HEAD_R},${HEAD_R} 0 1,0 ${HEAD_R*2},0 a${HEAD_R},${HEAD_R} 0 1,0 ${-HEAD_R*2},0`;
 function pawnBody(color){
-  return `<path d="${BODY_PATH}" fill="${color}" stroke="${OL}" stroke-width="2.6" stroke-linejoin="round"/>
-    ${sketchEcho(BODY_PATH,1.4,.2)}`;
+  return `<path d="${BODY_PATH}" fill="${color}" stroke="${OL}" stroke-width="2.6" stroke-linejoin="round"/>`;
 }
 function pawnHead(color){
-  return `<circle cx="0" cy="${HEAD_CY}" r="${HEAD_R}" fill="${color}" stroke="${OL}" stroke-width="2.8"/>
-    ${sketchEcho(HEAD_PATH,1.4,.2)}`;
+  return `<circle cx="0" cy="${HEAD_CY}" r="${HEAD_R}" fill="${color}" stroke="${OL}" stroke-width="2.8"/>`;
 }
 /* 로봇 전용: 끝이 둥근 사각형 머리 */
 function pawnSquareHead(color){
@@ -408,7 +407,7 @@ function bgArt(){
   ];
   let s=`<rect x="0" y="0" width="${W}" height="${TOP+50}" fill="#dbeefb"/>
          <rect x="0" y="${TOP}" width="${W}" height="${H-TOP}" fill="#f7f2e6"/>`;
-  s+=`<g filter="url(#soft)" opacity=".62">`;
+  s+=`<g opacity=".55">`;
   blocks.forEach(b=>{s+=`<rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}" rx="26" fill="${b[4]}"/>`;});
   s+=`<circle cx="230" cy="905" r="120" fill="#a9d6a0"/><circle cx="370" cy="960" r="90" fill="#b8dfae"/>`;
   s+=`<circle cx="150" cy="480" r="70" fill="#cddff7"/><circle cx="800" cy="960" r="80" fill="#f6dfae"/>`;
@@ -527,7 +526,7 @@ function arrowPath(x1,y1,x2,y2,col,wd,hl){
    <path d="M${x2},${y2} L${p1x},${p1y} L${p2x},${p2y} Z" fill="${col}" stroke="${col}" stroke-width="3" stroke-linejoin="round" opacity=".95"/>`;
 }
 function gimmickArt(){
-  let s='<g filter="url(#crayon)">';
+  let s='<g>';
   for(const a in ladders){
     const A=ctr(+a),B=ctr(ladders[a]);
     const dx=B.x-A.x,dy=B.y-A.y,L=Math.hypot(dx,dy);
@@ -576,11 +575,6 @@ function paintLights(){
 function buildStage(){
   stage.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
    <defs>
-     <filter id="crayon" x="-20%" y="-20%" width="140%" height="140%">
-       <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" seed="9" result="n"/>
-       <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
-     </filter>
-     <filter id="soft" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="16"/></filter>
      ${SKETCH_DEFS}
      <style>.hw{font-family:'Gaegu','Nanum Pen Script','Apple SD Gothic Neo',sans-serif;font-weight:700}</style>
    </defs>
@@ -602,21 +596,29 @@ buildStage(); shuffleLights();
 /* ── 카메라 ─────────────────────────────── */
 let cam={fx:W/2,fy:H/2,z:1};
 const fitScale=()=>Math.min(innerWidth/W,(innerHeight-140)/H);
+let camRaf=0;
 function applyCam(){
   const s=fitScale()*cam.z, vw=innerWidth, vh=innerHeight-140;
-  stage.style.transform=`translate(${vw/2-cam.fx*s}px,${vh/2-cam.fy*s+10}px) scale(${s})`;
+  // translate3d로 GPU 합성 레이어 사용 → 큰 SVG 줌 시 버벅임 감소
+  stage.style.transform=`translate3d(${vw/2-cam.fx*s}px,${vh/2-cam.fy*s+10}px,0) scale(${s})`;
+}
+function scheduleCam(){
+  if(camRaf)return;
+  camRaf=requestAnimationFrame(()=>{camRaf=0;applyCam();});
 }
 function animate(dur,fn){return new Promise(res=>{
   if(dur<=0){fn(1);return res();}
   const t0=performance.now();
   (function step(t){const k=Math.min(1,(t-t0)/dur);fn(k);k<1?requestAnimationFrame(step):res();})(performance.now());});}
-function setCam(fx,fy,z,dur=520){
+function setCam(fx,fy,z,dur=320){
   if(RM)dur=0;
+  // 모바일·다인플레이에서 긴 카메라 줌이 프레임 드롭의 주원인
+  if(players.length>2) dur=Math.min(dur,180);
   const a={...cam};
   if(!dur){cam={fx,fy,z};applyCam();return Promise.resolve();}
   return animate(dur,k=>{const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
-    cam.fx=a.fx+(fx-a.fx)*e;cam.fy=a.fy+(fy-a.fy)*e;cam.z=a.z+(z-a.z)*e;applyCam();});}
-const fullView=(d=520)=>setCam(W/2,H/2,1,d);
+    cam.fx=a.fx+(fx-a.fx)*e;cam.fy=a.fy+(fy-a.fy)*e;cam.z=a.z+(z-a.z)*e;scheduleCam();});}
+const fullView=(d=280)=>setCam(W/2,H/2,1,d);
 addEventListener('resize',applyCam); applyCam();
 
 /* ── 소리 / 진동 ────────────────────────── */
@@ -635,13 +637,10 @@ function thump(f0,f1,d,vol=.22,type='sine'){if(!AC)return;const o=AC.createOscil
   o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02);}
 const SFX={
   dice:()=>{
-    noise(.5,.16,1100,.9);
-    let t=0;
-    for(let k=0;k<6;k++){
-      const delay=t;
-      setTimeout(()=>{beep(ri(260,430),.045,'triangle',.1);noise(.05,.06,1600,1.2);},delay);
-      t+=48+k*20; // 점점 느려지며 잦아드는 데굴데굴 소리
-    }
+    // 가벼운 주사위음 (이전엔 노드 12개+ 생성 → 모바일 오디오 스톨)
+    noise(.28,.12,1000,.8);
+    beep(ri(280,400),.05,'triangle',.1);
+    setTimeout(()=>beep(ri(240,360),.04,'triangle',.08),70);
   },
   diceLand:()=>{thump(190,68,.17,.24,'sine');noise(.09,.12,900,.8);beep(760,.035,'triangle',.06);},
   hop:()=>beep(520+ri(-40,60),.07,'triangle',.11),
@@ -723,24 +722,16 @@ const MOM_SCALE=CHAR_SCALE*1.43;      // 아이 대비 130%였던 걸 다시 10%
 let momScale=MOM_SCALE, momRage=false;
 /* 각성 오라 — 노란 불꽃이 회전하며 일렁이는 효과 */
 function auraSVG(){
-  const N=13, pts=[];
+  // SMIL 무한 애니메는 모바일에서 상시 CPU 소모 → 정적 오라만 사용
+  const N=10, pts=[];
   for(let k=0;k<N*2;k++){
-    const a=k/(N*2)*Math.PI*2-Math.PI/2, r=(k%2===0)?70:44;
+    const a=k/(N*2)*Math.PI*2-Math.PI/2, r=(k%2===0)?66:42;
     pts.push(`${(Math.cos(a)*r).toFixed(1)},${(-46+Math.sin(a)*r*1.08).toFixed(1)}`);
   }
   return `<g>
-    <ellipse cx="0" cy="-46" rx="52" ry="60" fill="url(#auraGrad)" opacity=".8">
-      <animate attributeName="rx" values="48;60;48" dur="0.85s" repeatCount="indefinite"/>
-      <animate attributeName="ry" values="56;68;56" dur="0.85s" repeatCount="indefinite"/>
-    </ellipse>
-    <polygon points="${pts.join(' ')}" fill="#ffe066" opacity=".5">
-      <animateTransform attributeName="transform" type="rotate" from="0 0 -46" to="360 0 -46" dur="5s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values=".3;.65;.3" dur="0.6s" repeatCount="indefinite"/>
-    </polygon>
-    <polygon points="${pts.join(' ')}" fill="#fff3b0" opacity=".35">
-      <animateTransform attributeName="transform" type="rotate" from="360 0 -46" to="0 0 -46" dur="7s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values=".45;.15;.45" dur="0.75s" repeatCount="indefinite"/>
-    </polygon>
+    <ellipse cx="0" cy="-46" rx="52" ry="60" fill="url(#auraGrad)" opacity=".75"/>
+    <polygon points="${pts.join(' ')}" fill="#ffe066" opacity=".42"/>
+    <polygon points="${pts.join(' ')}" fill="#fff3b0" opacity=".28" transform="rotate(18 0 -46)"/>
   </g>`;
 }
 
@@ -754,9 +745,10 @@ function repositionCell(pos){players.filter(q=>q.pos===pos).forEach(p=>{const t=
 function placeAll(){players.forEach(p=>{const t=tokenXY(p);drawToken(p,t.x,t.y);});}
 function setTurnLabel(t){const e=document.getElementById('turnLabel');if(e)e.textContent=t;}
 
-async function hopTo(p,to,dur=250){
+async function hopTo(p,to,dur=180){
   const from=p.pos,a=tokenXY(p);p.pos=to;const b=tokenXY(p);SFX.hop();buzz(9);
-  await animate(RM?0:dur,k=>drawToken(p,a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k-Math.sin(Math.PI*k)*42,1+Math.sin(Math.PI*k)*.07));
+  // 스케일 펄스 제거: translate만 바꿔 레이아웃 비용 감소
+  await animate(RM?0:dur,k=>drawToken(p,a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k-Math.sin(Math.PI*k)*36,1));
   repositionCell(from);repositionCell(to);
 }
 async function slideTo(p,to,dur=700){
@@ -792,16 +784,17 @@ async function momHop(to){
 
 /* ── 이동 ───────────────────────────────── */
 async function walk(p,n){
+  const gap=players.length>2?0:(RM?0:24);
   for(let k=0;k<n;k++){
     if(!playing)return;
     if(p.pos>=LAST)p.dir=-1; else if(p.pos<=TOPL&&p.dir===-1)p.dir=1;
-    await hopTo(p,p.pos+p.dir);
-    await wait(RM?0:40);
+    await hopTo(p,p.pos+p.dir, players.length>2?140:180);
+    if(gap) await wait(gap);
     if(p.pos===LAST&&p.ticket) break;
   }
   setMood(p,p.pos%2?'tired':'nervous');
 }
-const zoomCell=(i,z=1.95)=>{const c=ctr(i);return setCam(c.x,Math.min(H-160,Math.max(200,c.y)),z,360);};
+const zoomCell=(i,z=1.55)=>{const c=ctr(i);return setCam(c.x,Math.min(H-160,Math.max(200,c.y)),z, players.length>2?0:220);};
 
 /* 기믹은 "주사위를 굴려 그 칸에 도착했을 때"만 발동. 지나가는 칸/기믹으로 옮겨진 칸은 발동 안 함 */
 async function resolveCell(p){
@@ -833,13 +826,17 @@ async function triggerMomRage(){
   if($('#dice').dataset.mode==='mom') buildDiceFaces('momRage');
   if(momActive) await fullView(420);
 }
-function sparkle(i){const c=ctr(i),fx=$('#gFx');let s='';
-  for(let k=0;k<9;k++){const a=k/9*Math.PI*2;
-    s+=`<circle cx="${c.x}" cy="${c.y}" r="6" fill="#f2c94c">
-      <animate attributeName="cx" to="${c.x+Math.cos(a)*75}" dur=".7s" fill="freeze"/>
-      <animate attributeName="cy" to="${c.y+Math.sin(a)*75}" dur=".7s" fill="freeze"/>
-      <animate attributeName="opacity" from="1" to="0" dur=".7s" fill="freeze"/></circle>`;}
-  fx.innerHTML=s;setTimeout(()=>{fx.innerHTML='';},760);}
+function sparkle(i){
+  const c=ctr(i),fx=$('#gFx');
+  if(!fx)return;
+  // SMIL 대신 한 번만 그리고 타이머로 제거 (애니메이션 엔진 부하↓)
+  let s='';
+  for(let k=0;k<6;k++){
+    const a=k/6*Math.PI*2,x=c.x+Math.cos(a)*55,y=c.y+Math.sin(a)*55;
+    s+=`<circle cx="${x}" cy="${y}" r="5" fill="#f2c94c" opacity=".85"/>`;
+  }
+  fx.innerHTML=s;setTimeout(()=>{if(fx)fx.innerHTML='';},420);
+}
 
 async function checkCatch(p,n){
   for(const q of players.filter(q=>q!==p&&q.pos===p.pos&&q.pos>0)){
@@ -881,7 +878,8 @@ async function takeTurn(power=0){
     await walk(p,n);
     if(!isLive(gen))return;
     buzz([16,10,34]);
-    await zoomCell(p.pos);await wait(180);
+    // 매 턴 줌인→줌아웃이 큰 SVG를 반복 재렌더 → 짧게/생략
+    if(players.length<=2){await zoomCell(p.pos);await wait(80);}
     if(!isLive(gen))return;
     await resolveCell(p);
     if(!isLive(gen))return;
@@ -895,7 +893,7 @@ async function takeTurn(power=0){
       await showNoTicketPopup();
     }
     if(!isLive(gen))return;
-    await fullView(460);
+    await fullView(players.length>2?0:220);
     cur++;
     if(cur>=players.length){cur=0;await momTurn(gen);}else beginTurn();
   } finally {
@@ -1064,11 +1062,10 @@ async function startGame(){
     $('#dicebar').style.display='flex';
     setTurnLabel('1P');
     if(!isLive(gen))return;
-    await setCam(ctr(0).x+130,ctr(0).y-70,2.0,700);
+    // 초반 줌인→줌아웃은 큰 SVG를 매 프레임 다시 그려 렉의 주원인 → 전체 화면으로 바로 시작
+    await fullView(0);
     if(!isLive(gen))return;
-    await toast('학원 — 여기서 출발!',1300);
-    if(!isLive(gen))return;
-    await wait(300);await fullView(760);
+    await toast('학원 — 여기서 출발!',900);
     if(!isLive(gen))return;
     shuffleLights();beginTurn();
   }catch(err){
