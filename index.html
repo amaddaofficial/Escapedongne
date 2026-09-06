@@ -980,7 +980,7 @@ async function finish(p,gen=gameGen){
     await animate(RM?0:340,t=>drawToken(p,a.x+(s.x-a.x)*t,a.y+(s.y-a.y)*t-Math.sin(Math.PI*t)*50,1));
     drawToken(p,s.x,s.y,1);a={x:s.x,y:s.y};
     await setCam(s.x,Math.max(200,s.y-40),1.7,300);
-    await toast(['체크인 완료','게이트 통과','비행기표!'][k],700);
+    await toast(['체크인 완료','게이트 통과','비행기 탑승'][k],700);
   }
   if(!isLive(gen))return;
   SFX.ticket();
