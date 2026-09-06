@@ -722,14 +722,14 @@ const MOM_SCALE=CHAR_SCALE*1.43;      // 아이 대비 130%였던 걸 다시 10%
 let momScale=MOM_SCALE, momRage=false;
 /* 각성 오라 — 노란 불꽃이 회전하며 일렁이는 효과 */
 function auraSVG(){
-  // 각성 오라: 엄마보다 한 바퀴 크게 (약 10% 확장), 정적 표현
-  const N=10, pts=[], S=1.1;
+  // 각성 오라를 엄마 기준 10% 더 크게
+  const N=10, pts=[];
   for(let k=0;k<N*2;k++){
-    const a=k/(N*2)*Math.PI*2-Math.PI/2, r=((k%2===0)?66:42)*S;
+    const a=k/(N*2)*Math.PI*2-Math.PI/2, r=(k%2===0)?66:42;
     pts.push(`${(Math.cos(a)*r).toFixed(1)},${(-46+Math.sin(a)*r*1.08).toFixed(1)}`);
   }
   return `<g transform="scale(1.1)">
-    <ellipse cx="0" cy="-46" rx="${(52*S).toFixed(1)}" ry="${(60*S).toFixed(1)}" fill="url(#auraGrad)" opacity=".75"/>
+    <ellipse cx="0" cy="-46" rx="52" ry="60" fill="url(#auraGrad)" opacity=".75"/>
     <polygon points="${pts.join(' ')}" fill="#ffe066" opacity=".42"/>
     <polygon points="${pts.join(' ')}" fill="#fff3b0" opacity=".28" transform="rotate(18 0 -46)"/>
   </g>`;
