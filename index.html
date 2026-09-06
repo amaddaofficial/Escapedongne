@@ -613,7 +613,7 @@ function animate(dur,fn){return new Promise(res=>{
 function setCam(fx,fy,z,dur=320){
   if(RM)dur=0;
   // 모바일·다인플레이에서 긴 카메라 줌이 프레임 드롭의 주원인
-  if(players.length>2) dur=Math.min(dur,180);
+  if(typeof players!=='undefined' && players.length>2) dur=Math.min(dur,180);
   const a={...cam};
   if(!dur){cam={fx,fy,z};applyCam();return Promise.resolve();}
   return animate(dur,k=>{const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
