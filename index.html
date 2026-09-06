@@ -823,7 +823,7 @@ async function triggerMomRage(){
     await zoomCell(mom.pos,1.8);
   }
   await toast('두둥!! 엄마가 각성했다!!<br>주사위가 4·5·6만 나온다!',2000);
-  if($('#dice').dataset.mode==='mom') buildDiceFaces('momRage');
+  // 각성 주사위 그래픽은 엄마 턴에만 적용 (지금 바꾸면 플레이어 턴에도 노란 기운이 남음)
   if(momActive) await fullView(420);
 }
 function sparkle(i){
@@ -916,6 +916,8 @@ async function momTurn(gen=gameGen){
       await wait(150);
     }
     mom.mood=['angry','phone','sweat','calm'][ri(0,3)];paintMom();
+    // 엄마 턴에만 각성/엄마 주사위 그래픽 표시
+    buildDiceFaces(momRage?'momRage':'mom');
     await toast('엄마 차례!',600);
     if(!isLive(gen))return;
     const step=await rollDiceAnim(momRage?'momRage':'mom');
@@ -954,6 +956,8 @@ function beginTurn(){
   shuffleLights();
   setTurnLabel(p.robot?'로봇':`${cur+1}P`);
   setMood(p,'nervous');
+  // 플레이어 턴에서는 항상 노말 주사위 그래픽 (각성 노란 기운은 엄마 턴 전용)
+  buildDiceFaces('normal');
   clearTimeout(robotRollT);
   if(p.auto){
     robotRollT=setTimeout(()=>{
